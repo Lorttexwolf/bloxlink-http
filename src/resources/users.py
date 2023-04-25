@@ -11,6 +11,9 @@ from .utils import fetch, ReturnType
 import dateutil.parser as parser
 from dataclasses import dataclass, field
 import hikari
+import logging
+from discord import ButtonStyle
+from resources.images import fetch_card
 
 
 @dataclass(slots=True)
@@ -213,18 +216,37 @@ async def get_user(
     return roblox_account
 
 
-async def format_embed(roblox_account: RobloxAccount, user: hikari.User = None) -> hikari.Embed:
-    await roblox_account.sync()
-
+async def format_embed(roblox_account: RobloxAccount, user: hikari.User = None) -> (hikari.Embed, hikari.MessageACtionRowBuilder, hikari.File):
+    # await roblox_account.sync(["value"], sentry_trace_id=sentry_trace_id)
+    created_at = parser.parse(roblox_account.created).replace(tzinfo=None)
+    
     embed = hikari.Embed(
-        title=str(user) if user else roblox_account.display_name,
-        url=roblox_account.profile_link,
+        description=roblox_account.description[:500] if roblox_account.description else "No description provided.",
+        color=hikari.Color.from_rgb(43, 45, 49)
     )
+    embed.set_author(name = f"Connected to {roblox_account.username} #{roblox_account.id}", icon = user.avatar_url)
+        
+    try:
+        # TODO: Use proper background.
+        with await fetch_card(avatar_img=roblox_account.avatars["fullBody"], background="merch_storm") as card:
+            embed.set_image(hikari.Bytes(card, "avatar.png"))
+    except Exception as ex:
+        # TODO: Trace error.
+        logging.error("Failed to fetch card image", exc_info=ex, stack_info=True)
 
-    embed.add_field(name="Username", value=f"@{roblox_account.username}", inline=True)
-    embed.add_field(name="ID", value=roblox_account.id, inline=True)
-    embed.add_field(name="Description", value= roblox_account.description[:500] if roblox_account.description else "None provided", inline=False)
-
-    embed.set_thumbnail(roblox_account.avatar)
-
-    return embed
+    components = bloxlink.rest.build_message_action_row(
+        ).add_button(ButtonStyle.LINK, roblox_account.profile_link 
+            ).set_label("Visit Profile"
+            ).set_emoji(hikari.KnownCustomEmoji.parse("<:roblox:1070141053040066640>")
+            ).add_to_container(
+        ).add_button(ButtonStyle.SECONDARY, "change_banner"
+            ).set_label("Style Banner"
+            ).set_emoji(hikari.UnicodeEmoji("🎨")).add_to_container()
+    
+    if roblox_account.display_name:
+        embed.add_field(name="Display Name", value=roblox_account.display_name, inline=True)
+    embed.add_field(name="Joined", value=f"<t:{created_at.strftime('%s')}:D>", inline=True)
+    if roblox_account.value:
+        embed.add_field(name="RAP", value=f"{roblox_account.value} <:rap:1092961300696543232>", inline=True)
+        
+    return (embed, components)

@@ -16,7 +16,7 @@ class Response:
         **kwargs):
 
         if self.responded:
-            await self.interaction.execute(content, embed=embed, component=components, **kwargs)
+            await self.interaction.edit_initial_response(content, embed=embed, component=components, **kwargs)
         else:
             self.responded = True
 
