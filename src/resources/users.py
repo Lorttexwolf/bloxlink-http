@@ -217,21 +217,21 @@ async def get_user(
 
 
 async def format_embed(roblox_account: RobloxAccount, user: hikari.User = None) -> (hikari.Embed, hikari.MessageACtionRowBuilder, hikari.File):
-    # await roblox_account.sync(["value"], sentry_trace_id=sentry_trace_id)
+    await roblox_account.sync(["value"], sentry_trace_id=sentry_trace_id)
     created_at = parser.parse(roblox_account.created).replace(tzinfo=None)
     
     embed = hikari.Embed(
         description=roblox_account.description[:500] if roblox_account.description else "No description provided.",
         color=hikari.Color.from_rgb(43, 45, 49)
     )
-    embed.set_author(name = f"Connected to {roblox_account.username} #{roblox_account.id}", icon = user.avatar_url)
-        
+    embed.set_author(name = f"Connected to {roblox_account.username} #{roblox_account.id}", icon = user.avatar_url)    
+    
     try:
         # TODO: Use proper background.
         with await fetch_card(avatar_img=roblox_account.avatars["fullBody"], background="merch_storm") as card:
             embed.set_image(hikari.Bytes(card, "avatar.png"))
     except Exception as ex:
-        # TODO: Trace error.
+        # TODO: Trace error using Sentry.
         logging.error("Failed to fetch card image", exc_info=ex, stack_info=True)
 
     components = bloxlink.rest.build_message_action_row(
