@@ -18,9 +18,9 @@ from resources.exceptions import RobloxNotFound
             type=OptionType.USER,
             name="user",
             description="Retrieve the Roblox information of this user",
-            is_required=False
+            is_required=False,
         )
-    ]
+    ],
 )
 class WhoisCommand:
     """Retrieve the Roblox information of a user."""

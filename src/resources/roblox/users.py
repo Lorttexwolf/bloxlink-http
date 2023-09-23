@@ -1,19 +1,22 @@
 from __future__ import annotations
-from .models import UserData, PartialMixin
-from .bloxlink import instance as bloxlink
-from .exceptions import UserNotVerified
-import resources.binds as binds
-import resources.groups as groups
-from .constants import ALL_USER_API_SCOPES
-from datetime import datetime
+
 import math
-from .utils import fetch, ReturnType
-import dateutil.parser as parser
 from dataclasses import dataclass, field
+from datetime import datetime
+
+import dateutil.parser as parser
 import hikari
 import logging
 from discord import ButtonStyle
 from resources.images import fetch_card
+
+import resources.binds as binds
+import resources.roblox.groups as groups
+from resources.bloxlink import instance as bloxlink
+from resources.constants import ALL_USER_API_SCOPES
+from resources.exceptions import UserNotVerified
+from resources.models import PartialMixin, UserData
+from resources.utils import ReturnType, fetch
 
 
 @dataclass(slots=True)
@@ -162,7 +165,7 @@ class RobloxAccount(PartialMixin):
             group: groups.RobloxGroup = groups.RobloxGroup(
                 id=str(group_meta["id"]),
                 name=group_meta["name"],
-                my_role={"name": group_role["name"].strip(), "rank": group_role["rank"]},
+                user_roleset=group_role,
             )  # seems redundant, but this is so we can switch the endpoint and retain consistency
             await group.sync()
             self.groups[group.id] = group
@@ -172,11 +175,12 @@ class RobloxAccount(PartialMixin):
 
 
 async def get_user_account(
-    user: hikari.User, guild_id: int = None, raise_errors=True
+    user: hikari.User | str, guild_id: int = None, raise_errors=True
 ) -> RobloxAccount | None:
     """get a user's linked Roblox account"""
 
-    bloxlink_user: UserData = await bloxlink.fetch_user_data(str(user.id), "robloxID", "robloxAccounts")
+    user_id = str(user.id) if isinstance(user, hikari.User) else str(user)
+    bloxlink_user: UserData = await bloxlink.fetch_user_data(user_id, "robloxID", "robloxAccounts")
 
     if guild_id:
         guild_account = (bloxlink_user.robloxAccounts or {}).get(str(guild_id))
@@ -234,6 +238,7 @@ async def format_embed(roblox_account: RobloxAccount, user: hikari.User = None) 
         # TODO: Trace error using Sentry.
         logging.error("Failed to fetch card image", exc_info=ex, stack_info=True)
 
+<<<<<<< HEAD:src/resources/users.py
     components = bloxlink.rest.build_message_action_row(
         ).add_button(ButtonStyle.LINK, roblox_account.profile_link 
             ).set_label("Visit Profile"
@@ -250,3 +255,17 @@ async def format_embed(roblox_account: RobloxAccount, user: hikari.User = None) 
         embed.add_field(name="RAP", value=f"{roblox_account.value} <:rap:1092961300696543232>", inline=True)
         
     return (embed, components)
+=======
+    embed.add_field(name="Username", value=f"@{roblox_account.username}", inline=True)
+    embed.add_field(name="ID", value=roblox_account.id, inline=True)
+    embed.add_field(
+        name="Description",
+        value=roblox_account.description[:500] if roblox_account.description else "None provided",
+        inline=False,
+    )
+
+    embed.set_thumbnail(roblox_account.avatar)
+
+    return embed
+>>>>>>> 17808c46b07e999bbb7a56cef2d5d04383216caf:src/resources/roblox/users.py
+"""  """
